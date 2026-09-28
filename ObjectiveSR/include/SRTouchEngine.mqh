@@ -24,10 +24,11 @@ bool IsValidTouch(bool isSupport, double bh, double bl, double close,
    if(!TouchOverlaps(bh,bl,zu,zl)) return(false);
    return(TouchCloseOK(isSupport,close,zu,zl,zw));
   }
-//--- Spacing: gap = prevShift - curShift (scan tua->muda, shift mengecil)
-//--- Touch berikutnya valid jika (prevShift - curShift) >= minGap
+//--- Spacing: scan BARU->lama (shift 1..maxScan, waktu mundur).
+//--- Gap waktu = curShift - prevShift (keduanya shift M15).
+//--- Touch berikutnya valid jika (curShift - prevShift) >= minGap.
 bool CheckTouchSpacing(int prevShift, int curShift, int minGap)
-  { return((prevShift-curShift)>=minGap); }
+  { return((curShift-prevShift)>=minGap); }
 //--- Invalidation: close tembus >1 ZW di luar zone (sisa hari)
 bool IsInvalidatedClose(bool isSupport, double close, double zu,
                         double zl, double zw)
@@ -36,7 +37,9 @@ bool IsInvalidatedClose(bool isSupport, double close, double zu,
    return(close>zu+zw);
   }
 //--- Update touches+invalidation semua cluster dari M15 closed.
-//--- Scan shift=120..1 (tua->muda) agar spacing berurutan waktu.
+//--- Scan BARU->lama (shift 1..maxScan) agar break invalidation benar:
+//--- bar terbaru dicek dulu; jika close tembus jauh -> INVALIDATED.
+//--- LastTouchTime = touch terbaru (paling dekat dgn harga kini).
 //--- Return: jumlah touch valid total semua cluster.
 int UpdateTouches(string sym, SRStrategyConfig &st, SRCluster &cl[])
   {
@@ -51,7 +54,7 @@ int UpdateTouches(string sym, SRStrategyConfig &st, SRCluster &cl[])
       cl[c].TouchCount=0; cl[c].LastTouchTime=0;
       cl[c].State=SR_STATE_ACTIVE; cl[c].FreshState=SR_FRESH;
       int prevShift=-1; bool sup=true; // -1 = belum ada touch
-      for(int sh=maxScan;sh>=1;sh--)
+      for(int sh=1;sh<=maxScan;sh++)
         {
          double bh=iHigh(sym,PERIOD_M15,sh);
          double bl=iLow(sym,PERIOD_M15,sh);
@@ -68,7 +71,7 @@ int UpdateTouches(string sym, SRStrategyConfig &st, SRCluster &cl[])
             !CheckTouchSpacing(prevShift,sh,st.TouchMinSpacingBars))
             continue;
          cl[c].TouchCount++; tot++;
-         cl[c].LastTouchTime=bt;
+         if(cl[c].LastTouchTime==0) cl[c].LastTouchTime=bt; // sentuh terbaru
          cl[c].FreshState=SR_TOUCHED;
          prevShift=sh;
         }
