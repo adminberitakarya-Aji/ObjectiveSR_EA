@@ -225,7 +225,7 @@ bool IsNewsDay()
    if(StringLen(InpNewsDates)==0) return(false);
    MqlDateTime g; TimeToStruct(MarketGetGMT(),g);
    string today=StringFormat("%04d.%02d.%02d",g.year,g.mon,g.day);
-   string p[]; int n=StringSplit(InpNewsDates,',',p);
+   string p[]; int n=StringSplit(InpNewsDates, StringGetCharacter(",", 0), p);
    for(int i=0;i<n;i++)
      { StringTrimLeft(p[i]); StringTrimRight(p[i]);
        if(p[i]==today) return(true); }
@@ -318,9 +318,9 @@ void ManageOpen()
    for(int i=PositionsTotal()-1;i>=0;i--)
      {
       ulong t=PositionGetTicket(i); if(t==0) continue;
-      string ps=""; long mg=0;
-      PositionGetString(POSITION_SYMBOL,ps);
-      PositionGetInteger(POSITION_MAGIC,mg);
+      string ps="";
+      if(!PositionGetString(POSITION_SYMBOL,ps)) continue;
+      long mg=PositionGetInteger(POSITION_MAGIC);
       if(ps==_Symbol && mg==20260928){found=true; tick=t; break;}
      }
    if(found){ g_ticket=tick; return; }
@@ -333,14 +333,14 @@ void ManageOpen()
          g_lastClosedTicket=closed;
          double prof=0; double exitPx=0;
          ENUM_SR_EXIT_REASON er=SR_EXIT_OTHER;
-         if(HistorySelect(closed,TimeCurrent()+86400))
+         if(HistorySelect(0,TimeCurrent()+86400))
            {
             for(int i=0;i<HistoryDealsTotal();i++)
               {
                ulong dt=HistoryDealGetTicket(i);
-               string ds=""; long dm=0;
-               HistoryDealGetString(dt,DEAL_SYMBOL,ds);
-               HistoryDealGetInteger(dt,DEAL_MAGIC,dm);
+               string ds="";
+               if(!HistoryDealGetString(dt,DEAL_SYMBOL,ds)) continue;
+               long dm=HistoryDealGetInteger(dt,DEAL_MAGIC);
                if(ds==_Symbol && dm==20260928)
                  {
                   prof+=HistoryDealGetDouble(dt,DEAL_PROFIT)

@@ -4,7 +4,7 @@
 //+------------------------------------------------------------------+
 #ifndef __OBJECTIVE_SR_TREND_ENGINE_MQH__
 #define __OBJECTIVE_SR_TREND_ENGINE_MQH__
-#include "SRTypes.mqh"
+#include "include/SRTypes.mqh"
 //--- Handle EMA50 H4 (dibuat sekali, static di UpdateTrend)
 int TrendEMAHandle(string sym)
   {

@@ -6,7 +6,7 @@
 #ifndef __OBJECTIVE_SR_TYPES_MQH__
 #define __OBJECTIVE_SR_TYPES_MQH__
 
-#include "SRConstants.mqh"
+#include "include/SRConstants.mqh"
 
 //+------------------------------------------------------------------+
 //| Raw S&R level                                                    |

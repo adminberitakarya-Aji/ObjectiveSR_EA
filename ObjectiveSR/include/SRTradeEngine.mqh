@@ -4,9 +4,9 @@
 //+------------------------------------------------------------------+
 #ifndef __OBJECTIVE_SR_TRADE_ENGINE_MQH__
 #define __OBJECTIVE_SR_TRADE_ENGINE_MQH__
-#include "SRTypes.mqh"
-#include "SRConfig.mqh"
-#include "SRUtils.mqh"
+#include "include/SRTypes.mqh"
+#include "include/SRConfig.mqh"
+#include "include/SRUtils.mqh"
 //--- SL long = min(rejLow, zoneLow) - buffer | short = max(rejHigh, zoneUp) + buffer
 bool CalcSL(string sym, SRSymbolConfig &sc, bool isLong, double rejEdge,
             double zoneLow, double zoneUp, double &sl)

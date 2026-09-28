@@ -4,10 +4,10 @@
 //+------------------------------------------------------------------+
 #ifndef __OBJECTIVE_SR_RISK_MANAGER_MQH__
 #define __OBJECTIVE_SR_RISK_MANAGER_MQH__
-#include "SRTypes.mqh"
-#include "SRConfig.mqh"
-#include "SRUtils.mqh"
-#include "SRMarket.mqh"
+#include "include/SRTypes.mqh"
+#include "include/SRConfig.mqh"
+#include "include/SRUtils.mqh"
+#include "include/SRMarket.mqh"
 //--- Risk % aktif (reduced setelah 3 loss beruntun)
 double ActiveRisk(SRStrategyConfig &st, SRRiskState &r)
   { return(r.ReducedRiskMode ? st.ReducedRiskPercent : st.RiskPercent); }
