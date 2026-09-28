@@ -273,7 +273,7 @@ void TryEntry(int cIdx, SRTradeSetup &sig)
           slPips*PipSize(_Symbol),g_clusters,cIdx,tp);
    double rp=MathAbs(entry-sl), wp=MathAbs(tp-entry);
    double rr=(rp>0?wp/rp:0);
-   if(!RROK(g_strategy,rr))
+   if(!RROK(g_symbol,rr))
      { Print("ObjectiveSR skip: RR ",DoubleToString(rr,2)); return; }
    double riskPct=ActiveRisk(g_strategy,g_risk);
    double lot=CalcLot(_Symbol,riskPct,slPips);

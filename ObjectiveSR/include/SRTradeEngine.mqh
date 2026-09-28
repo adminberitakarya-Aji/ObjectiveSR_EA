@@ -58,5 +58,5 @@ bool CalcTP(string sym, SRSymbolConfig &sc, SRStrategyConfig &st,
    tp=(isLong ? MathMin(raw,cap) : MathMax(raw,cap));
    return(true);
   }
-bool RROK(SRStrategyConfig &st, double rr){ return(rr>=st.MinRR); }
+bool RROK(SRSymbolConfig &sc, double rr){ return(rr>=sc.MinRR); }
 #endif
