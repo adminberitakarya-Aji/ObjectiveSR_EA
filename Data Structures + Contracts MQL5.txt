@@ -1,0 +1,804 @@
+PHASE 1 — Data Structures + Contracts MQL5.
+
+Tujuannya bukan membuat EA lengkap dulu, tetapi membuat fondasi data yang tidak perlu diubah lagi ketika Level Engine, Cluster Engine, Touch Engine, dan Trade Engine mulai dibuat.
+
+1. Struktur data inti
+
+Saya sarankan satu file:
+
+ObjectiveSR/
+├── ObjectiveSR.mq5
+└── include/
+    ├── SRTypes.mqh
+    ├── SRConfig.mqh
+    └── SRConstants.mqh
+
+Untuk sekarang kita definisikan tiga file tersebut.
+
+SRConstants.mqh
+#ifndef __OBJECTIVE_SR_CONSTANTS_MQH__
+#define __OBJECTIVE_SR_CONSTANTS_MQH__
+
+//+------------------------------------------------------------------+
+//| Level source types                                               |
+//+------------------------------------------------------------------+
+enum ENUM_SR_SOURCE
+{
+   SR_SOURCE_PDH = 0,
+   SR_SOURCE_PDL,
+   SR_SOURCE_PWH,
+   SR_SOURCE_PWL,
+   SR_SOURCE_ASIA_HIGH,
+   SR_SOURCE_ASIA_LOW,
+   SR_SOURCE_ROUND_NUMBER,
+   SR_SOURCE_H4_SWING_HIGH,
+   SR_SOURCE_H4_SWING_LOW
+};
+
+
+//+------------------------------------------------------------------+
+//| Cluster / level state                                            |
+//+------------------------------------------------------------------+
+enum ENUM_SR_STATE
+{
+   SR_STATE_ACTIVE = 0,
+   SR_STATE_INVALIDATED
+};
+
+
+//+------------------------------------------------------------------+
+//| Freshness state                                                  |
+//+------------------------------------------------------------------+
+enum ENUM_SR_FRESH_STATE
+{
+   SR_FRESH = 0,
+   SR_TOUCHED
+};
+
+
+//+------------------------------------------------------------------+
+//| Trade direction                                                  |
+//+------------------------------------------------------------------+
+enum ENUM_SR_DIRECTION
+{
+   SR_DIRECTION_NONE = 0,
+   SR_DIRECTION_LONG,
+   SR_DIRECTION_SHORT
+};
+
+
+//+------------------------------------------------------------------+
+//| Rejection pattern                                                |
+//+------------------------------------------------------------------+
+enum ENUM_SR_PATTERN
+{
+   SR_PATTERN_NONE = 0,
+   SR_PATTERN_BULLISH_PIN,
+   SR_PATTERN_BULLISH_ENGULFING,
+   SR_PATTERN_BEARISH_PIN,
+   SR_PATTERN_BEARISH_ENGULFING
+};
+
+
+//+------------------------------------------------------------------+
+//| Exit reason                                                      |
+//+------------------------------------------------------------------+
+enum ENUM_SR_EXIT_REASON
+{
+   SR_EXIT_NONE = 0,
+   SR_EXIT_TP,
+   SR_EXIT_SL,
+   SR_EXIT_TIME,
+   SR_EXIT_MANUAL,
+   SR_EXIT_OTHER
+};
+
+#endif
+2. SRConfig.mqh
+
+Di sini kita pisahkan rule strategi dari parameter pair.
+
+#ifndef __OBJECTIVE_SR_CONFIG_MQH__
+#define __OBJECTIVE_SR_CONFIG_MQH__
+
+//+------------------------------------------------------------------+
+//| Symbol-specific configuration                                    |
+//+------------------------------------------------------------------+
+struct SRSymbolConfig
+{
+   string Symbol;
+
+   double ZoneHalfPips;
+   double SLBufferPips;
+
+   double MinSLPips;
+   double MaxSLPips;
+
+   double ClusterDistancePips;
+
+   double MinRR;
+
+   int    MinTouches;
+
+   double MaxSpreadPips;
+};
+
+
+//+------------------------------------------------------------------+
+//| Global strategy configuration                                    |
+//+------------------------------------------------------------------+
+struct SRStrategyConfig
+{
+   // Risk
+   double RiskPercent;
+
+   double DailyMaxLossR;
+   double WeeklyMaxLossR;
+
+   int    ConsecutiveLossTrigger;
+   double ReducedRiskPercent;
+
+   // Trading time
+   int EntryStartHourGMT;
+   int EntryStartMinuteGMT;
+
+   int EntryEndHourGMT;
+   int EntryEndMinuteGMT;
+
+   int ForceCloseHourGMT;
+   int ForceCloseMinuteGMT;
+
+   // Level rules
+   int SwingLookbackDays;
+   int SwingLeftBars;
+   int SwingRightBars;
+
+   int TouchMinSpacingBars;
+
+   // TP
+   double TPBufferPips;
+   double MaxRewardR;
+
+   // Optional
+   bool FreshOnly;
+   bool NewsFilterEnabled;
+};
+
+
+//+------------------------------------------------------------------+
+//| EURUSD default configuration                                     |
+//+------------------------------------------------------------------+
+SRSymbolConfig DefaultEURUSDConfig()
+{
+   SRSymbolConfig cfg;
+
+   cfg.Symbol               = "EURUSD";
+
+   cfg.ZoneHalfPips         = 5.0;
+   cfg.SLBufferPips         = 4.0;
+
+   cfg.MinSLPips            = 8.0;
+   cfg.MaxSLPips            = 25.0;
+
+   cfg.ClusterDistancePips  = 10.0;
+
+   cfg.MinRR                = 1.5;
+
+   cfg.MinTouches           = 2;
+
+   cfg.MaxSpreadPips        = 2.0;
+
+   return cfg;
+}
+
+
+//+------------------------------------------------------------------+
+//| GBPUSD default configuration                                     |
+//+------------------------------------------------------------------+
+SRSymbolConfig DefaultGBPUSDConfig()
+{
+   SRSymbolConfig cfg;
+
+   cfg.Symbol               = "GBPUSD";
+
+   cfg.ZoneHalfPips         = 7.0;
+   cfg.SLBufferPips         = 6.0;
+
+   cfg.MinSLPips            = 10.0;
+   cfg.MaxSLPips             = 35.0;
+
+   cfg.ClusterDistancePips  = 10.0;
+
+   cfg.MinRR                = 1.5;
+
+   cfg.MinTouches           = 2;
+
+   cfg.MaxSpreadPips        = 3.0;
+
+   return cfg;
+}
+
+
+//+------------------------------------------------------------------+
+//| Default strategy configuration                                   |
+//+------------------------------------------------------------------+
+SRStrategyConfig DefaultStrategyConfig()
+{
+   SRStrategyConfig cfg;
+
+   cfg.RiskPercent          = 0.5;
+
+   cfg.DailyMaxLossR        = 2.0;
+   cfg.WeeklyMaxLossR       = 4.0;
+
+   cfg.ConsecutiveLossTrigger = 3;
+   cfg.ReducedRiskPercent     = 0.25;
+
+   cfg.EntryStartHourGMT    = 7;
+   cfg.EntryStartMinuteGMT  = 0;
+
+   cfg.EntryEndHourGMT      = 16;
+   cfg.EntryEndMinuteGMT    = 0;
+
+   cfg.ForceCloseHourGMT   = 20;
+   cfg.ForceCloseMinuteGMT = 0;
+
+   cfg.SwingLookbackDays    = 20;
+
+   cfg.SwingLeftBars        = 2;
+   cfg.SwingRightBars       = 2;
+
+   cfg.TouchMinSpacingBars  = 6;
+
+   cfg.TPBufferPips         = 2.0;
+   cfg.MaxRewardR           = 3.0;
+
+   cfg.FreshOnly            = false;
+   cfg.NewsFilterEnabled    = true;
+
+   return cfg;
+}
+
+#endif
+3. SRTypes.mqh
+
+Ini bagian paling penting.
+
+SRLevel
+
+Mewakili satu level mentah dari satu source.
+
+#ifndef __OBJECTIVE_SR_TYPES_MQH__
+#define __OBJECTIVE_SR_TYPES_MQH__
+
+#include "SRConstants.mqh"
+
+
+//+------------------------------------------------------------------+
+//| Raw S&R level                                                    |
+//+------------------------------------------------------------------+
+struct SRLevel
+{
+   double Price;
+
+   ENUM_SR_SOURCE Source;
+
+   datetime FormedTime;
+
+   bool Active;
+
+   // Used by H4 swing / FreshOnly
+   bool Fresh;
+
+   // Optional source reference
+   int SourceBarShift;
+
+   // Touch information
+   int TouchCount;
+
+   datetime LastTouchTime;
+};
+4. SRCluster
+
+Beberapa SRLevel yang berdekatan menjadi satu cluster.
+
+//+------------------------------------------------------------------+
+//| Cluster of S&R levels                                            |
+//+------------------------------------------------------------------+
+struct SRCluster
+{
+   double Center;
+
+   double Upper;
+   double Lower;
+
+   double ZoneWidth;
+
+   int SourceCount;
+
+   int TouchCount;
+
+   ENUM_SR_STATE State;
+
+   ENUM_SR_FRESH_STATE FreshState;
+
+   datetime CreatedTime;
+
+   datetime LastTouchTime;
+
+   // Number of raw levels contained in cluster
+   int LevelCount;
+};
+5. SRTouch
+
+Kita simpan touch secara eksplisit supaya nantinya mudah dianalisis.
+
+//+------------------------------------------------------------------+
+//| Individual touch                                                |
+//+------------------------------------------------------------------+
+struct SRTouch
+{
+   datetime Time;
+
+   int BarShift;
+
+   double BarHigh;
+
+   double BarLow;
+
+   double BarClose;
+
+   bool Valid;
+
+   bool SpacingValid;
+};
+6. SRTrendState
+
+Trend tidak boleh hanya berupa true/false.
+
+Kita simpan datanya agar dapat dilog.
+
+//+------------------------------------------------------------------+
+//| H4 trend state                                                   |
+//+------------------------------------------------------------------+
+struct SRTrendState
+{
+   bool LongAllowed;
+   bool ShortAllowed;
+
+   double H4Close;
+
+   double EMA50Current;
+
+   double EMA50Previous;
+
+   double EMA50SlopeReference;
+};
+7. SRTradeSetup
+
+Ini adalah hasil akhir Entry Engine sebelum Trade Engine melakukan eksekusi.
+
+//+------------------------------------------------------------------+
+//| Trade setup                                                      |
+//+------------------------------------------------------------------+
+struct SRTradeSetup
+{
+   bool Valid;
+
+   ENUM_SR_DIRECTION Direction;
+
+   ENUM_SR_PATTERN Pattern;
+
+   int ClusterIndex;
+
+   double EntryPrice;
+
+   double StopLoss;
+
+   double TakeProfit;
+
+   double RiskPips;
+
+   double RewardPips;
+
+   double RR;
+
+   double SpreadPips;
+
+   int TouchCount;
+
+   int ClusterScore;
+
+   datetime SignalTime;
+};
+8. SRRiskState
+
+Risk Manager membutuhkan state tersendiri.
+
+//+------------------------------------------------------------------+
+//| Risk state                                                       |
+//+------------------------------------------------------------------+
+struct SRRiskState
+{
+   double RiskPercent;
+
+   double DailyLossR;
+
+   double WeeklyLossR;
+
+   int ConsecutiveLosses;
+
+   int TradesToday;
+
+   bool DailyLimitReached;
+
+   bool WeeklyLimitReached;
+
+   bool ReducedRiskMode;
+};
+9. SRTradeRecord
+
+Ini kontrak untuk CSV logger.
+
+//+------------------------------------------------------------------+
+//| Completed trade record                                          |
+//+------------------------------------------------------------------+
+struct SRTradeRecord
+{
+   datetime EntryTime;
+   datetime ExitTime;
+
+   string Symbol;
+
+   ENUM_SR_DIRECTION Direction;
+
+   ENUM_SR_PATTERN Pattern;
+
+   double EntryPrice;
+   double StopLoss;
+   double TakeProfit;
+   double ExitPrice;
+
+   double RiskPips;
+   double RewardPips;
+   double RR;
+
+   double SpreadPips;
+
+   ENUM_SR_SOURCE PrimarySource;
+
+   int ClusterScore;
+   int TouchCount;
+
+   double ZoneUpper;
+   double ZoneLower;
+
+   double H4Close;
+   double EMA50;
+
+   double MAE;
+   double MFE;
+
+   ENUM_SR_EXIT_REASON ExitReason;
+
+   double ResultR;
+   double ResultMoney;
+};
+10. Kontrak antar-engine
+
+Sekarang kita sudah bisa menetapkan siapa yang boleh membaca/menghasilkan data apa.
+
+LEVEL ENGINE
+Input:
+    Market Data
+    SymbolConfig
+
+Output:
+    SRLevel[]
+
+        ↓
+
+CLUSTER ENGINE
+Input:
+    SRLevel[]
+    SymbolConfig
+
+Output:
+    SRCluster[]
+
+        ↓
+
+TOUCH ENGINE
+Input:
+    SRCluster[]
+    M15 Data
+
+Output:
+    Updated SRCluster[]
+
+        ↓
+
+TREND ENGINE
+Input:
+    H4 Data
+
+Output:
+    SRTrendState
+
+        ↓
+
+ENTRY ENGINE
+Input:
+    SRCluster[]
+    M15 Data
+    SRTrendState
+
+Output:
+    SRTradeSetup
+
+        ↓
+
+TRADE ENGINE
+Input:
+    SRTradeSetup
+    SRRiskState
+
+Output:
+    Position
+
+        ↓
+
+LOGGER
+Input:
+    Position
+    SRTradeRecord
+11. Hal penting: jangan membuat SRCluster memiliki terlalu banyak tanggung jawab
+
+Kita sengaja tidak menyimpan seluruh SRLevel[] di dalam SRCluster.
+
+Jangan membuat seperti:
+
+struct SRCluster
+{
+   SRLevel Levels[100];
+};
+
+untuk versi awal.
+
+Lebih baik:
+
+SRLevel[]
+    +
+cluster assignment
+    ↓
+SRCluster[]
+
+Ini membuat engine lebih sederhana dan lebih mudah di-debug.
+
+12. Source identity
+
+Kita juga perlu fungsi untuk membedakan source type.
+
+Contoh:
+
+bool IsSameSource(
+   ENUM_SR_SOURCE a,
+   ENUM_SR_SOURCE b
+)
+{
+   return a == b;
+}
+
+Nanti Cluster Engine dapat menghitung:
+
+PDH
+PWH
+Round
+H4 Swing
+
+sebagai:
+
+4 source types
+
+sedangkan:
+
+H4 Swing High 1
+H4 Swing High 2
+
+tetap:
+
+1 source type
+13. Pip conversion
+
+Karena strategi kita menggunakan pips, kita jangan mencampurnya langsung dengan _Point.
+
+Buat helper:
+
+double PipSize(string symbol)
+{
+   int digits = (int)SymbolInfoInteger(
+      symbol,
+      SYMBOL_DIGITS
+   );
+
+   double point = SymbolInfoDouble(
+      symbol,
+      SYMBOL_POINT
+   );
+
+   if(digits == 3 || digits == 5)
+      return point * 10.0;
+
+   return point;
+}
+
+Lalu:
+
+double PipsToPrice(
+   string symbol,
+   double pips
+)
+{
+   return pips * PipSize(symbol);
+}
+
+dan:
+
+double PriceToPips(
+   string symbol,
+   double priceDistance
+)
+{
+   return priceDistance / PipSize(symbol);
+}
+
+Dengan ini:
+
+5 pips
+
+tidak salah diterjemahkan menjadi:
+
+5 points
+
+pada EURUSD/GBPUSD 5-digit.
+
+14. Kontrak waktu GMT
+
+Jangan biarkan engine lain memproses jam sendiri-sendiri.
+
+Buat satu helper:
+
+bool IsEntryWindow(
+   datetime gmtTime,
+   SRStrategyConfig &cfg
+)
+{
+   MqlDateTime t;
+   TimeToStruct(gmtTime, t);
+
+   int currentMinutes =
+      t.hour * 60 + t.min;
+
+   int startMinutes =
+      cfg.EntryStartHourGMT * 60 +
+      cfg.EntryStartMinuteGMT;
+
+   int endMinutes =
+      cfg.EntryEndHourGMT * 60 +
+      cfg.EntryEndMinuteGMT;
+
+   return (
+      currentMinutes >= startMinutes &&
+      currentMinutes < endMinutes
+   );
+}
+
+Dengan begitu semua engine menggunakan definisi waktu yang sama.
+
+15. Kontrak lifecycle
+
+EA nantinya tidak melakukan semuanya setiap tick.
+
+Konsep lifecycle:
+
+TICK
+ │
+ ├── New D1?
+ │      └── Rebuild D1 levels
+ │
+ ├── New H4?
+ │      └── Rebuild H4 swings
+ │
+ ├── New M15?
+ │      ├── Update touches
+ │      ├── Update invalidation
+ │      ├── Check rejection
+ │      └── Evaluate trade
+ │
+ └── Every tick
+        ├── spread
+        ├── open position management
+        └── force close
+
+Ini penting agar EA tidak melakukan perhitungan berat berulang kali pada setiap tick.
+
+16. Kontrak utama EA
+
+File ObjectiveSR.mq5 nantinya secara konseptual menjadi:
+
+#include "include/SRConstants.mqh"
+#include "include/SRConfig.mqh"
+#include "include/SRTypes.mqh"
+
+Kemudian:
+
+SRStrategyConfig g_strategy;
+SRSymbolConfig   g_symbol;
+
+SRLevel   g_levels[];
+SRCluster g_clusters[];
+
+SRTrendState g_trend;
+SRRiskState  g_risk;
+
+Lifecycle:
+
+int OnInit()
+{
+   g_strategy = DefaultStrategyConfig();
+
+   if(_Symbol == "EURUSD")
+      g_symbol = DefaultEURUSDConfig();
+
+   else if(_Symbol == "GBPUSD")
+      g_symbol = DefaultGBPUSDConfig();
+
+   else
+      return INIT_PARAMETERS_INCORRECT;
+
+   return INIT_SUCCEEDED;
+}
+
+Untuk sementara kita sengaja hanya mengizinkan EURUSD dan GBPUSD.
+
+Pair lain baru ditambahkan setelah framework terbukti bekerja.
+
+17. Apa yang sudah selesai
+
+Sekarang kita sudah punya:
+
+[✓] Objective S&R Specification v1.0
+[✓] Level source contract
+[✓] Cluster contract
+[✓] Touch contract
+[✓] Trend contract
+[✓] Trade setup contract
+[✓] Risk state contract
+[✓] Trade logging contract
+[✓] Pair configuration contract
+[✓] Pip conversion contract
+[✓] GMT contract
+[✓] Engine lifecycle contract
+Langkah berikutnya
+
+Sekarang kita masuk ke bagian yang paling konkret:
+
+PHASE 2 — Market Engine + Level Engine
+
+Urutannya:
+
+Market Engine
+    ↓
+PDH / PDL
+    ↓
+PWH / PWL
+    ↓
+Asia High / Low
+    ↓
+Round Number
+    ↓
+H4 Swing
+    ↓
+SRLevel[]
+
+Setelah itu baru kita buat Cluster Engine 10-pip + Cluster Score, sehingga untuk pertama kalinya EA bisa menghasilkan daftar Support/Resistance objektif dari market.

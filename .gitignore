@@ -1,0 +1,11 @@
+# MQL5 build artifacts
+*.ex5
+*.log
+# MT5 tester / files output
+*.csv.bak
+# OS
+Thumbs.db
+Desktop.ini
+# Python
+__pycache__/
+*.pyc

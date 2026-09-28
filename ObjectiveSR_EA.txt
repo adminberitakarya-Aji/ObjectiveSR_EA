@@ -1,0 +1,1751 @@
+# Objective S&R Specification
+
+**Version:** 1.0
+**Status:** SPECIFICATION — LOCK CANDIDATE
+**Platform:** MetaTrader 5 / MQL5
+**Primary Timeframes:** D1, W1, H4, M15
+**Time Reference:** GMT
+**Price Unit:** Pips
+**Execution:** Closed-bar based
+
+---
+
+# 1. Purpose
+
+Objective S&R adalah strategi trading berbasis Support & Resistance yang mengubah level-level harga objektif menjadi:
+
+1. level;
+2. zone;
+3. cluster;
+4. touch;
+5. validity state;
+6. trend context;
+7. rejection setup;
+8. trade;
+9. risk-managed result.
+
+Seluruh keputusan trading harus berasal dari rule yang dapat dihitung secara deterministik.
+
+Tidak boleh terdapat keputusan subjektif seperti:
+
+* "level terlihat kuat";
+* "trend kelihatannya naik";
+* "candle cukup bagus";
+* "support sepertinya valid".
+
+---
+
+# 2. Core Principles
+
+## 2.1 Closed Bar Only
+
+Semua kalkulasi strategi menggunakan candle yang sudah close.
+
+```text
+shift >= 1
+```
+
+Tidak boleh menggunakan candle yang sedang berjalan untuk memvalidasi setup.
+
+---
+
+## 2.2 No Repainting
+
+Level swing hanya boleh digunakan setelah seluruh candle konfirmasi tersedia.
+
+H4 Swing menggunakan:
+
+```text
+2 candle kiri
++
+Swing candle
++
+2 candle kanan
+```
+
+Swing baru valid setelah dua candle kanan selesai.
+
+---
+
+## 2.3 GMT
+
+Seluruh rule berbasis waktu menggunakan:
+
+```cpp
+TimeGMT()
+```
+
+Bukan asumsi raw broker/server time.
+
+---
+
+# 3. Level Sources
+
+Objective S&R menggunakan lima sumber level.
+
+```text
+PDH / PDL
+PWH / PWL
+Asia High / Low
+Round Number
+H4 Swing
+```
+
+---
+
+# 4. PDH / PDL
+
+## 4.1 Previous Day High
+
+```text
+PDH = High D1 shift 1
+```
+
+## 4.2 Previous Day Low
+
+```text
+PDL = Low D1 shift 1
+```
+
+Level dihitung ulang ketika memasuki hari trading baru.
+
+---
+
+# 5. PWH / PWL
+
+## 5.1 Previous Week High
+
+```text
+PWH = High W1 shift 1
+```
+
+## 5.2 Previous Week Low
+
+```text
+PWL = Low W1 shift 1
+```
+
+Level dihitung berdasarkan previous completed week.
+
+---
+
+# 6. Asia High / Low
+
+Asia session:
+
+```text
+00:00 GMT → 07:00 GMT
+```
+
+Setelah pukul:
+
+```text
+07:00 GMT
+```
+
+Asia High dan Asia Low dibekukan.
+
+Artinya:
+
+```text
+00:00–06:59
+    ↓
+collect high/low
+
+07:00
+    ↓
+freeze
+```
+
+Asia H/L tidak boleh terus berubah setelah 07:00.
+
+---
+
+# 7. Round Numbers
+
+Round-number levels menggunakan interval:
+
+```text
+50 pips
+```
+
+Contoh konsep:
+
+```text
+x.x000
+x.x500
+```
+
+Level terdekat dengan current price digunakan sebagai kandidat S&R.
+
+Round-number generation tidak bergantung pada ATR.
+
+---
+
+# 8. H4 Swing
+
+H4 swing menggunakan fractal:
+
+```text
+2 bars left
+2 bars right
+```
+
+Contoh swing high:
+
+```text
+       H
+       |
+   H1  H  H2
+       |
+```
+
+Swing hanya valid setelah dua candle kanan selesai.
+
+---
+
+# 9. H4 Swing Lookback
+
+Lookback:
+
+```text
+20 hari
+```
+
+Dengan H4:
+
+```text
+20 × 6 = ±120 H4 bars
+```
+
+Hanya swing dalam lookback tersebut yang dipertimbangkan.
+
+---
+
+# 10. Minimum Swing Touches
+
+Default:
+
+```text
+MinSwingTouches = 2
+```
+
+Swing level harus memiliki minimal dua touch untuk dianggap memenuhi kandidat swing S&R.
+
+---
+
+# 11. Zone Construction
+
+Setiap level memiliki zone:
+
+```text
+Upper = Level + ZoneHalfPips
+Lower = Level - ZoneHalfPips
+```
+
+Sehingga:
+
+```text
+ZoneWidth = 2 × ZoneHalfPips
+```
+
+Default:
+
+### EURUSD
+
+```text
+ZoneHalfPips = 5
+ZoneWidth = 10 pips
+```
+
+### GBPUSD
+
+```text
+ZoneHalfPips = 7
+ZoneWidth = 14 pips
+```
+
+---
+
+# 12. Level Clustering
+
+Level yang berdekatan digabung menjadi satu cluster.
+
+Default:
+
+```text
+ClusterDistance = 10 pips
+```
+
+Tujuannya adalah menghindari:
+
+```text
+PDH
+PWH
+Round Number
+Swing
+```
+
+yang sebenarnya berada di area harga yang sama diperlakukan sebagai empat S&R terpisah.
+
+---
+
+# 13. Cluster Score
+
+Cluster score dihitung berdasarkan jumlah **source type yang berbeda**.
+
+Contoh:
+
+```text
+PDH       4300
+PWH       4304
+H4 Swing  4302
+Round     4300
+```
+
+Jika masuk satu cluster:
+
+```text
+Sources:
+PDH
+PWH
+H4 Swing
+Round Number
+
+Cluster Score = 4
+```
+
+Multiple level dari source yang sama tidak dihitung sebagai source tambahan.
+
+---
+
+# 14. Cluster Score Variants
+
+Baseline:
+
+```text
+MinClusterScore = 1
+```
+
+Research variant:
+
+```text
+MinClusterScore = 2
+```
+
+Score 2 **bukan diasumsikan lebih profitable**.
+
+Keduanya harus dapat dibandingkan melalui backtest.
+
+---
+
+# 15. Cluster Center
+
+Cluster harus menghasilkan satu reference price.
+
+Implementasi harus deterministik.
+
+Default design:
+
+```text
+Cluster Center = representative price
+```
+
+Representative price harus ditentukan oleh implementasi dan tidak boleh berubah secara acak.
+
+Untuk tahap implementasi, metode center harus dikunci sebelum coding engine.
+
+---
+
+# 16. Touch Definition
+
+Touch dihitung menggunakan M15.
+
+Sebuah M15 bar dianggap menyentuh zone apabila:
+
+```text
+Bar High >= Zone Lower
+AND
+Bar Low <= Zone Upper
+```
+
+Dengan kata lain, range candle memasuki zone.
+
+---
+
+# 17. Touch Close Condition
+
+Touch hanya valid apabila close tidak berada lebih dari satu zone width di luar zone.
+
+Untuk support:
+
+```text
+Close >= Lower - ZoneWidth
+```
+
+Untuk resistance:
+
+```text
+Close <= Upper + ZoneWidth
+```
+
+Rule ini mencegah candle yang benar-benar menembus level jauh dianggap sebagai touch normal.
+
+---
+
+# 18. Touch Spacing
+
+Dua touch tidak boleh dihitung sebagai touch berbeda apabila terlalu berdekatan.
+
+Minimum:
+
+```text
+6 M15 bars
+```
+
+Karena satu M15 bar = 15 menit:
+
+```text
+6 bars = 90 menit
+```
+
+Touch berikutnya baru dihitung apabila:
+
+```text
+CurrentTouchBar - PreviousTouchBar >= 6 bars
+```
+
+---
+
+# 19. Level Invalidation
+
+Level/cluster dapat menjadi invalid.
+
+M15 close yang menembus zone lebih dari satu zone width menyebabkan level invalid untuk sisa hari.
+
+Konsep:
+
+```text
+Close > Upper + ZoneWidth
+```
+
+atau:
+
+```text
+Close < Lower - ZoneWidth
+```
+
+→ invalid.
+
+Level invalid:
+
+```text
+Tidak boleh digunakan untuk entry berikutnya
+```
+
+sampai reset sesuai lifecycle level.
+
+---
+
+# 20. FreshOnly
+
+Parameter opsional:
+
+```text
+FreshOnly = true / false
+```
+
+Jika aktif:
+
+H4 swing zone hanya valid apabila belum pernah disentuh sejak swing terbentuk.
+
+Jika sudah disentuh:
+
+```text
+Fresh = false
+```
+
+Jika FreshOnly aktif:
+
+```text
+Fresh == false
+→ tidak boleh entry
+```
+
+---
+
+# 21. Trend Filter
+
+Trend ditentukan pada H4.
+
+Indicator:
+
+```text
+EMA 50
+```
+
+---
+
+# 22. Long Trend Condition
+
+Long hanya diperbolehkan apabila:
+
+```text
+H4 Close[1] > EMA50[1]
+```
+
+dan:
+
+```text
+EMA50[1] > EMA50[4]
+```
+
+Artinya EMA50 sedang naik dibandingkan tiga H4 bar sebelumnya.
+
+---
+
+# 23. Short Trend Condition
+
+Short hanya diperbolehkan apabila:
+
+```text
+H4 Close[1] < EMA50[1]
+```
+
+dan:
+
+```text
+EMA50[1] < EMA50[4]
+```
+
+---
+
+# 24. Countertrend
+
+Countertrend trading:
+
+```text
+FORBIDDEN
+```
+
+Jika trend filter tidak terpenuhi:
+
+```text
+No Trade
+```
+
+---
+
+# 25. Trading Session
+
+Entry hanya diperbolehkan:
+
+```text
+07:00 GMT
+→
+16:00 GMT
+```
+
+Di luar window:
+
+```text
+No New Entry
+```
+
+---
+
+# 26. Daily Trade Limit
+
+Maximum:
+
+```text
+1 trade/day
+```
+
+untuk setup Objective S&R.
+
+---
+
+# 27. Support Entry
+
+Long setup harus memenuhi seluruh kondisi:
+
+```text
+1. Active support cluster
+2. M15 shift 1 enters zone
+3. Close > cluster level
+4. Bullish rejection pattern
+5. H4 bullish trend
+6. Valid RR
+7. Risk filters pass
+8. Spread filter pass
+9. News filter pass
+10. Daily/weekly risk limit pass
+```
+
+---
+
+# 28. Bullish Rejection
+
+Valid bullish rejection:
+
+```text
+Pin Bar
+OR
+Bullish Engulfing
+```
+
+---
+
+# 29. Bullish Pin Bar
+
+Lower wick:
+
+```text
+>= 2 × body
+```
+
+Body:
+
+```text
+abs(Close - Open)
+```
+
+Lower wick harus dihitung secara deterministik dari OHLC candle M15 shift 1.
+
+---
+
+# 30. Bullish Engulfing
+
+Pattern harus ditentukan dari candle M15 yang sudah close.
+
+Minimal konsep:
+
+```text
+Previous candle bearish
+Current candle bullish
+Current body engulfs previous body
+```
+
+Detail equality/boundary harus dikunci pada implementasi agar tidak ambigu.
+
+---
+
+# 31. Resistance Entry
+
+Short adalah kebalikan bullish setup:
+
+```text
+M15 High enters resistance zone
+Close < cluster level
+Bearish Pin Bar
+OR
+Bearish Engulfing
+```
+
+Ditambah seluruh filter yang sama.
+
+---
+
+# 32. Execution
+
+Entry dilakukan sebagai:
+
+```text
+Market Order
+```
+
+pada open candle berikutnya setelah rejection candle selesai.
+
+Tidak menggunakan intrabar prediction.
+
+---
+
+# 33. Stop Loss — Long
+
+SL ditempatkan di bawah:
+
+```text
+min(
+    rejection candle low,
+    lower zone boundary
+)
+```
+
+kemudian dikurangi:
+
+```text
+SLBufferPips
+```
+
+Formula:
+
+```text
+SL =
+min(RejectionLow, ZoneLower)
+-
+SLBuffer
+```
+
+---
+
+# 34. Stop Loss — Short
+
+Formula:
+
+```text
+SL =
+max(RejectionHigh, ZoneUpper)
++
+SLBuffer
+```
+
+---
+
+# 35. Stop Loss Constraints
+
+Trade hanya valid jika jarak SL:
+
+```text
+>= MinSLPips
+```
+
+dan:
+
+```text
+<= MaxSLPips
+```
+
+Jika:
+
+```text
+SL < MinSL
+```
+
+→ skip.
+
+Jika:
+
+```text
+SL > MaxSL
+```
+
+→ skip.
+
+---
+
+# 36. Default SL Parameters
+
+## EURUSD
+
+```text
+SLBuffer = 4 pips
+MinSL = 8 pips
+MaxSL = 25 pips
+```
+
+## GBPUSD
+
+```text
+SLBuffer = 6 pips
+MinSL = 10 pips
+MaxSL = 35 pips
+```
+
+---
+
+# 37. Take Profit
+
+TP diarahkan ke:
+
+```text
+next valid opposing level/cluster
+```
+
+di arah profit.
+
+Untuk Long:
+
+```text
+nearest valid resistance cluster
+```
+
+Untuk Short:
+
+```text
+nearest valid support cluster
+```
+
+---
+
+# 38. TP Buffer
+
+TP ditempatkan:
+
+```text
+2 pips
+```
+
+sebelum opposing level.
+
+Long:
+
+```text
+TP = NextResistance - 2 pips
+```
+
+Short:
+
+```text
+TP = NextSupport + 2 pips
+```
+
+---
+
+# 39. Maximum Reward
+
+TP maksimum:
+
+```text
+3R
+```
+
+Jika target level memberikan reward lebih besar dari 3R:
+
+```text
+TP = Entry + 3R
+```
+
+untuk Long.
+
+Short:
+
+```text
+TP = Entry - 3R
+```
+
+---
+
+# 40. Minimum Risk/Reward
+
+Default:
+
+```text
+MinRR = 1.5
+```
+
+Jika:
+
+```text
+RR < 1.5
+```
+
+→ skip trade.
+
+---
+
+# 41. Spread Filter
+
+Default:
+
+### EURUSD
+
+```text
+MaxSpread = 2 pips
+```
+
+### GBPUSD
+
+```text
+MaxSpread = 3 pips
+```
+
+Jika spread melebihi batas:
+
+```text
+No Entry
+```
+
+---
+
+# 42. News Filter
+
+Major-news dates dapat dikonfigurasi manual.
+
+Contoh kategori:
+
+```text
+NFP
+FOMC
+Central Bank Decision
+```
+
+News filter harus dapat memblokir trading pada tanggal yang ditentukan.
+
+---
+
+# 43. Risk Per Trade
+
+Default:
+
+```text
+Risk = 0.5%
+```
+
+Posisi dihitung berdasarkan jarak SL sehingga nominal risiko mengikuti:
+
+```text
+0.5% account equity/balance
+```
+
+Metode basis equity/balance harus dikunci pada implementasi Risk Manager dan tidak boleh berubah antar trade.
+
+---
+
+# 44. Daily Risk Limit
+
+Maximum daily loss:
+
+```text
+-2R
+```
+
+Dengan risk:
+
+```text
+1R = 0.5%
+```
+
+maka:
+
+```text
+-2R = -1.0%
+```
+
+Daily limit dihitung dari realized trading result sesuai definisi Risk Manager.
+
+---
+
+# 45. Weekly Risk Limit
+
+Maximum:
+
+```text
+-4R
+```
+
+Dengan 0.5% per trade:
+
+```text
+-4R = -2.0%
+```
+
+---
+
+# 46. Consecutive Loss Protection
+
+Setelah:
+
+```text
+3 consecutive losses
+```
+
+risk sementara dikurangi.
+
+Besarnya reduction harus menjadi parameter eksplisit:
+
+```text
+ReducedRiskPercent
+```
+
+dan tidak boleh diimplementasikan sebagai martingale.
+
+---
+
+# 47. Forbidden Risk Techniques
+
+Strategi tidak boleh menggunakan:
+
+```text
+Martingale
+Grid
+Averaging Down
+Averaging Up
+Loss doubling
+```
+
+---
+
+# 48. Forced Close
+
+Posisi ditutup pada:
+
+```text
+20:00 GMT
+```
+
+apabila masih terbuka.
+
+Tidak ada posisi Objective S&R yang boleh dibiarkan melewati forced-close time berdasarkan rule ini.
+
+---
+
+# 49. Rollover Handling
+
+Karena entry window berakhir pada:
+
+```text
+16:00 GMT
+```
+
+sementara forced close:
+
+```text
+20:00 GMT
+```
+
+maka tidak ada entry baru mendekati rollover.
+
+Rule rollover tambahan hanya diperlukan apabila kemudian entry window diperluas.
+
+---
+
+# 50. Daily Reset
+
+Pada hari trading baru:
+
+```text
+Daily trade count
+Daily risk state
+Asia High/Low
+Daily level validity
+```
+
+diproses sesuai lifecycle masing-masing.
+
+PDH/PDL juga berganti berdasarkan completed previous day.
+
+---
+
+# 51. Weekly Reset
+
+Pada minggu baru:
+
+```text
+Weekly risk state
+```
+
+di-reset sesuai kalender trading.
+
+PWH/PWL mengambil completed previous week.
+
+---
+
+# 52. Recalculation Frequency
+
+Level tidak perlu dihitung ulang setiap tick.
+
+## D1-derived levels
+
+Recalculate:
+
+```text
+once per new D1 bar
+```
+
+## H4 swing
+
+Recalculate:
+
+```text
+once per new H4 bar
+```
+
+## M15 touch/rejection
+
+Evaluate:
+
+```text
+once per new M15 bar
+```
+
+Dengan demikian engine tidak melakukan full recalculation pada setiap tick.
+
+---
+
+# 53. Core Processing Pipeline
+
+Pipeline resmi:
+
+```text
+Market Data
+    ↓
+Collect Levels
+    ↓
+Cluster Levels
+    ↓
+Build Zones
+    ↓
+Count Touches
+    ↓
+Invalidate Levels
+    ↓
+Score Clusters
+    ↓
+Trend Filter
+    ↓
+Entry Pattern
+    ↓
+SL Calculation
+    ↓
+TP Calculation
+    ↓
+RR Validation
+    ↓
+Risk Validation
+    ↓
+Trade Execution
+    ↓
+Trade Logging
+```
+
+---
+
+# 54. Level Engine
+
+Level Engine bertanggung jawab hanya untuk menghasilkan kandidat level.
+
+```text
+LevelEngine
+├── CollectPDH_PDL()
+├── CollectPWH_PWL()
+├── CollectAsiaHL()
+├── CollectRoundNumbers()
+└── CollectH4Swings()
+```
+
+Level Engine tidak bertanggung jawab untuk:
+
+```text
+OrderSend
+Risk
+TP
+SL
+```
+
+---
+
+# 55. Cluster Engine
+
+Cluster Engine:
+
+```text
+ClusterLevels()
+BuildCluster()
+CalculateClusterScore()
+BuildZone()
+```
+
+Input:
+
+```text
+SRLevel[]
+```
+
+Output:
+
+```text
+SRCluster[]
+```
+
+---
+
+# 56. Touch Engine
+
+Touch Engine:
+
+```text
+CountTouches()
+IsValidTouch()
+CheckTouchSpacing()
+```
+
+Input:
+
+```text
+M15 OHLC
+SRCluster
+```
+
+Output:
+
+```text
+TouchCount
+```
+
+---
+
+# 57. Level State
+
+Setiap cluster harus memiliki state yang eksplisit.
+
+Minimum:
+
+```text
+ACTIVE
+INVALIDATED
+```
+
+Untuk FreshOnly:
+
+```text
+FRESH
+TOUCHED
+```
+
+State tidak boleh hanya disimpulkan dari kondisi random setiap tick.
+
+---
+
+# 58. Trend Engine
+
+Trend Engine hanya bertanggung jawab terhadap:
+
+```text
+H4 EMA50
+```
+
+Interface konseptual:
+
+```cpp
+bool IsLongTrend();
+bool IsShortTrend();
+```
+
+Tidak memasukkan indikator tambahan ke dalam trend filter v1.0.
+
+---
+
+# 59. Entry Engine
+
+Entry Engine bertanggung jawab terhadap:
+
+```text
+Bullish Pin
+Bullish Engulfing
+Bearish Pin
+Bearish Engulfing
+```
+
+Entry Engine tidak menghitung risk atau lot size.
+
+---
+
+# 60. Trade Engine
+
+Trade Engine bertanggung jawab terhadap:
+
+```text
+CalculateSL()
+CalculateTP()
+CalculateRR()
+ExecuteTrade()
+ForceClose()
+```
+
+---
+
+# 61. Risk Manager
+
+Risk Manager bertanggung jawab terhadap:
+
+```text
+Risk per trade
+Daily loss
+Weekly loss
+Consecutive losses
+Position sizing
+```
+
+Risk Manager tidak menentukan apakah level merupakan support/resistance.
+
+---
+
+# 62. Logger
+
+Setiap trade harus menghasilkan record CSV.
+
+Minimum fields:
+
+```text
+Date
+TimeGMT
+Symbol
+Direction
+Entry
+SL
+TP
+
+LevelSource
+ClusterScore
+ClusterSources
+TouchCount
+
+ZoneUpper
+ZoneLower
+
+H4Close
+EMA50
+TrendDirection
+
+Pattern
+RR
+Spread
+
+SessionHour
+
+MAE
+MFE
+
+ExitPrice
+ExitReason
+
+ResultR
+ResultMoney
+```
+
+---
+
+# 63. Source-Level Analysis
+
+Logger harus memungkinkan analisis berdasarkan:
+
+```text
+PDH
+PDL
+PWH
+PWL
+AsiaH
+AsiaL
+RoundNumber
+H4Swing
+```
+
+Tujuannya adalah mengetahui kontribusi masing-masing source terhadap hasil strategi.
+
+---
+
+# 64. Cluster Analysis
+
+Logger harus memungkinkan grouping:
+
+```text
+ClusterScore = 1
+ClusterScore = 2
+ClusterScore = 3
+ClusterScore >= 4
+```
+
+Tanpa mengasumsikan score tinggi lebih baik sebelum data membuktikannya.
+
+---
+
+# 65. MAE / MFE
+
+Sebelum mengubah exit strategy, sistem harus mengumpulkan:
+
+```text
+MAE = Maximum Adverse Excursion
+MFE = Maximum Favorable Excursion
+```
+
+Data tersebut digunakan untuk penelitian exit dan SL/TP.
+
+---
+
+# 66. Pair Configuration
+
+Architecture harus memisahkan:
+
+```text
+Strategy Rules
+```
+
+dari:
+
+```text
+Symbol Parameters
+```
+
+Contoh:
+
+```cpp
+struct SymbolConfig
+{
+   double ZoneHalfPips;
+   double SLBufferPips;
+   double MinSLPips;
+   double MaxSLPips;
+   double ClusterDistancePips;
+   double MinRR;
+   int    MinTouches;
+   double MaxSpreadPips;
+};
+```
+
+---
+
+# 67. Initial EURUSD Configuration
+
+```text
+ZoneHalfPips       = 5
+SLBufferPips       = 4
+MinSLPips          = 8
+MaxSLPips          = 25
+ClusterDistance    = 10
+MinRR              = 1.5
+MinTouches         = 2
+MaxSpread          = 2
+```
+
+---
+
+# 68. Initial GBPUSD Configuration
+
+```text
+ZoneHalfPips       = 7
+SLBufferPips       = 6
+MinSLPips          = 10
+MaxSLPips          = 35
+ClusterDistance    = 10
+MinRR              = 1.5
+MinTouches         = 2
+MaxSpread          = 3
+```
+
+---
+
+# 69. Research Parameters
+
+Parameter testing terbatas pada:
+
+```text
+ZoneHalfPips:
+3 → 10
+
+SLBufferPips:
+2 → 10
+
+MinRR:
+1.2 → 2.0
+
+MinTouches:
+2 → 3
+
+SL range:
+±30%
+```
+
+Optimisasi tidak boleh dilakukan sebelum baseline selesai.
+
+---
+
+# 70. Testing Sequence
+
+Urutan penelitian wajib:
+
+```text
+1. Baseline
+       ↓
+2. Source-level analysis
+       ↓
+3. Cluster-score analysis
+       ↓
+4. FreshOnly ON/OFF
+       ↓
+5. Parameter sensitivity
+       ↓
+6. Out-of-sample
+       ↓
+7. Walk-forward
+       ↓
+8. Forward/demo test
+```
+
+---
+
+# 71. Baseline
+
+Baseline harus menggunakan konfigurasi awal tanpa optimisasi.
+
+Tujuannya:
+
+```text
+mengukur strategi sebagaimana didefinisikan
+```
+
+bukan mencari parameter terbaik terlebih dahulu.
+
+---
+
+# 72. Forbidden Premature Additions
+
+Objective S&R v1.0 tidak boleh ditambah dengan:
+
+```text
+RSI
+MACD
+Stochastic
+FVG
+Liquidity Sweep
+ATR-based zone
+ATR-based clustering
+additional discretionary ranking
+```
+
+kecuali dibuat sebagai research variant terpisah.
+
+---
+
+# 73. Architecture
+
+Struktur engine:
+
+```text
+ObjectiveSR_EA
+│
+├── Market
+│   ├── TimeGMT
+│   ├── Spread
+│   └── Session
+│
+├── LevelEngine
+│   ├── PDH_PDL
+│   ├── PWH_PWL
+│   ├── AsiaHL
+│   ├── RoundNumber
+│   └── H4Swing
+│
+├── ClusterEngine
+│   ├── Merge
+│   ├── Score
+│   └── Zone
+│
+├── TouchEngine
+│   ├── Touch
+│   └── Spacing
+│
+├── LevelState
+│   ├── Active
+│   ├── Invalidated
+│   └── Fresh
+│
+├── TrendEngine
+│   └── H4 EMA50
+│
+├── EntryEngine
+│   ├── PinBar
+│   └── Engulfing
+│
+├── TradeEngine
+│   ├── Entry
+│   ├── SL
+│   ├── TP
+│   └── ForceClose
+│
+├── RiskManager
+│   ├── PerTrade
+│   ├── Daily
+│   ├── Weekly
+│   └── ConsecutiveLoss
+│
+├── NewsFilter
+│
+└── TradeLogger
+```
+
+---
+
+# 74. Separation of Responsibility
+
+Setiap engine hanya boleh melakukan tanggung jawabnya sendiri.
+
+Contoh:
+
+```text
+LevelEngine
+    tidak boleh membuka trade.
+
+RiskManager
+    tidak boleh menentukan support.
+
+EntryEngine
+    tidak boleh menghitung weekly loss.
+
+Logger
+    tidak boleh mengubah keputusan trading.
+```
+
+---
+
+# 75. Deterministic Requirement
+
+Untuk input market data yang sama:
+
+```text
+same market data
++
+same parameters
++
+same configuration
+```
+
+harus menghasilkan:
+
+```text
+same levels
+same clusters
+same signals
+same SL
+same TP
+same trade decision
+```
+
+Tidak boleh ada randomness dalam strategy engine.
+
+---
+
+# 76. V1.0 Success Criteria
+
+Objective S&R v1.0 dianggap siap untuk backtest apabila:
+
+```text
+[ ] Semua source level terdeteksi
+[ ] H4 swing tidak repaint
+[ ] Zone deterministic
+[ ] Cluster deterministic
+[ ] Touch deterministic
+[ ] Touch spacing diterapkan
+[ ] Invalidation bekerja
+[ ] FreshOnly bekerja
+[ ] H4 EMA50 filter bekerja
+[ ] Pin Bar bekerja
+[ ] Engulfing bekerja
+[ ] SL sesuai rule
+[ ] TP sesuai rule
+[ ] RR filter bekerja
+[ ] Spread filter bekerja
+[ ] News filter bekerja
+[ ] Risk manager bekerja
+[ ] Daily limit bekerja
+[ ] Weekly limit bekerja
+[ ] Consecutive loss protection bekerja
+[ ] Force close 20:00 GMT bekerja
+[ ] CSV logging lengkap
+```
+
+---
+
+# 77. Implementation Order
+
+Implementasi EA harus mengikuti urutan:
+
+```text
+PHASE 1
+Data structures
+        ↓
+PHASE 2
+Market / GMT
+        ↓
+PHASE 3
+Level Engine
+        ↓
+PHASE 4
+Cluster Engine
+        ↓
+PHASE 5
+Touch Engine
+        ↓
+PHASE 6
+Invalidation / Freshness
+        ↓
+PHASE 7
+Trend Engine
+        ↓
+PHASE 8
+Entry Engine
+        ↓
+PHASE 9
+SL / TP / RR
+        ↓
+PHASE 10
+Risk Manager
+        ↓
+PHASE 11
+Trade Execution
+        ↓
+PHASE 12
+Logger
+        ↓
+PHASE 13
+Backtest Validation
+```
+
+---
+
+# 78. Current Status
+
+```text
+Strategy concept       = DEFINED
+Core rules             = DEFINED
+Pair parameters        = DEFINED
+Architecture           = DEFINED
+Research methodology   = DEFINED
+
+MQL5 implementation    = NOT STARTED
+SRD_Indi exact mapping = REQUIRES SOURCE VERIFICATION
+Backtest               = NOT STARTED
+```
+
+---
+
+# 79. Change Control
+
+Setelah Specification v1.0 dikunci:
+
+Perubahan rule harus dicatat sebagai:
+
+```text
+Rule ID
+Current Rule
+Proposed Rule
+Reason
+Expected Impact
+Research Variant / Core Variant
+```
+
+Perubahan tidak boleh diam-diam masuk ke implementation.
+
+---
+
+# 80. Final Principle
+
+Objective S&R bukan dirancang untuk "terlihat pintar".
+
+Tujuan utamanya adalah:
+
+```text
+OBJECTIVE
+    ↓
+REPEATABLE
+    ↓
+TESTABLE
+    ↓
+MEASURABLE
+    ↓
+RESEARCHABLE
+```
+
+Edge tidak diasumsikan dari teori.
+
+Edge harus dibuktikan melalui data.

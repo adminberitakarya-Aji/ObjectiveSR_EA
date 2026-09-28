@@ -1,0 +1,2 @@
+files_trades=0 rows=0 signals_files=0
+NO DATA: copy ObjectiveSR_*_trades.csv ke folder analysis dulu.
