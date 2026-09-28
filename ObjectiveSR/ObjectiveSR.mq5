@@ -82,18 +82,38 @@ datetime g_lastM15Bar = 0;
 //+------------------------------------------------------------------+
 //| Init                                                             |
 //+------------------------------------------------------------------+
+string BaseSymbol(const string sym)
+  {
+   string s = sym;
+   StringToUpper(s);
+//--- Hapus prefix umum: contoh "mEURUSD" -> cari EURUSD/GBPUSD di dalam
+   int p = StringFind(s, "EURUSD");
+   if(p >= 0)
+      return("EURUSD");
+   p = StringFind(s, "GBPUSD");
+   if(p >= 0)
+      return("GBPUSD");
+   return(s);
+  }
 int OnInit()
   {
    g_strategy = DefaultStrategyConfig();
 
-   if(_Symbol == "EURUSD")
+   string base = BaseSymbol(_Symbol);
+   if(base == "EURUSD")
+     {
       g_symbol = DefaultEURUSDConfig();
-   else if(_Symbol == "GBPUSD")
+      g_symbol.Symbol = _Symbol; // pakai nama broker asli (cth EURUSDc)
+     }
+   else if(base == "GBPUSD")
+     {
       g_symbol = DefaultGBPUSDConfig();
+      g_symbol.Symbol = _Symbol;
+     }
    else
      {
-      Print("ObjectiveSR M1: symbol tidak didukung: ", _Symbol,
-            ". Hanya EURUSD/GBPUSD.");
+      Print("ObjectiveSR: symbol tidak didukung: ", _Symbol,
+            ". Hanya EURUSD/GBPUSD (suffix/prefix broker apa pun OK).");
       return(INIT_PARAMETERS_INCORRECT);
      }
 
