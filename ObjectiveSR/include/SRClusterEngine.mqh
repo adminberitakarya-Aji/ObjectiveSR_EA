@@ -4,9 +4,9 @@
 //+------------------------------------------------------------------+
 #ifndef __OBJECTIVE_SR_CLUSTER_ENGINE_MQH__
 #define __OBJECTIVE_SR_CLUSTER_ENGINE_MQH__
-#include "include/SRTypes.mqh"
-#include "include/SRConfig.mqh"
-#include "include/SRUtils.mqh"
+#include "SRTypes.mqh"
+#include "SRConfig.mqh"
+#include "SRUtils.mqh"
 //--- Prioritas source (tie-break deterministik, H4 swing terkuat)
 int SourceRank(ENUM_SR_SOURCE s)
   {

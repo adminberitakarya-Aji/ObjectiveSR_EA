@@ -5,8 +5,8 @@
 #ifndef __OBJECTIVE_SR_UTILS_MQH__
 #define __OBJECTIVE_SR_UTILS_MQH__
 
-#include "include/SRConfig.mqh"
-#include "include/SRConstants.mqh"
+#include "SRConfig.mqh"
+#include "SRConstants.mqh"
 
 //+------------------------------------------------------------------+
 //| Pip size (aman untuk broker 3/5 digit)                           |

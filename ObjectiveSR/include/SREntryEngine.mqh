@@ -5,9 +5,9 @@
 //+------------------------------------------------------------------+
 #ifndef __OBJECTIVE_SR_ENTRY_ENGINE_MQH__
 #define __OBJECTIVE_SR_ENTRY_ENGINE_MQH__
-#include "include/SRTypes.mqh"
-#include "include/SRConfig.mqh"
-#include "include/SRTouchEngine.mqh"
+#include "SRTypes.mqh"
+#include "SRConfig.mqh"
+#include "SRTouchEngine.mqh"
 //--- Wick/body M15 shift s
 void CandleParts(string sym, int s, double &o, double &h, double &l,
                  double &c)
