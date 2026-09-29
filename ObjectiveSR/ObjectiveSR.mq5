@@ -27,6 +27,7 @@ input bool InpLogLevels = false;
 input bool InpTradeEnabled = false; // false = sinyal saja; true = live order
 input string InpNewsDates = "";     // "2026.01.15,2026.02.12" -> blokir entry
 input bool InpLogCSV = true;        // tulis signals/trades CSV di MQL5/Files
+input bool InpFreshOnly = false;    // F1: true = cluster TOUCHED ditolak (default baseline false)
 
 //--- Forward declaration (dipanggil dari OnInit)
 void RefreshLevels(const string reason);
@@ -98,6 +99,7 @@ string BaseSymbol(const string sym)
 int OnInit()
   {
    g_strategy = DefaultStrategyConfig();
+   g_strategy.FreshOnly = InpFreshOnly; // F1: expose tanpa ubah engine
 
    string base = BaseSymbol(_Symbol);
    if(base == "EURUSD")

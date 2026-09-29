@@ -80,8 +80,8 @@ Script membaca `trades*.csv` + `signals*.csv` di foldernya
 |---|---|---|---|---|---|---|---|
 | B1 | 2024-01→2024-12 (EURUSDc, real ticks, 10k 1:100) | baseline default | 50 | 22.0 | 0.50 | -26.01 | TIDAK LOLOS: ekspektasi negatif (avgR -0.37, cumR -18.62). 36 SL/8 TP/6 TIME. Gate RR+spread 0 pelanggaran. Hipotesis score GAGAL: score1/2 (-0.24) > score3/4 (-0.62). Satu-satunya pola ≥0: BULLISH_PIN +0.03 (n=7, noise). Data valid pasca-fix logger+arah (commit 936b53a). N<100, perlu tambah periode. |
 | B2 | 2024-01→2026-09 (EURUSDc, real ticks, 10k 1:100) | baseline default, tambah periode | 166 | 27.1 | 0.66 | -48.70 | TIDAK LOLOS: ekspektasi tetap negatif (avgR -0.24, cumR -40.01). 116 SL/38 TP/12 TIME. Semua 4 pola negatif (BearPin -0.20 terbaik, BearEng -0.42 terburuk). Score 1 (-0.12) terbaik, score 5 (-0.35, n=4) tidak menyelamatkan — hipotesis score TETAP GAGAL. PWH 0/8. LONG (-0.24) ≈ SHORT (-0.24): bukan masalah arah. Gate 0 pelanggaran, mismatch arah 0. N≥100 TERPENUHI tapi PF<1 dan maxDD -48.7R >> batas 10R. NEXT: ablasi S1 (score>=2) + F1 (FreshOnly ON) untuk konfirmasi, bukan untuk profit. |
-| S1 | 23-24 | score>=2 | | | | | NEXT |
-| F1 | 23-24 | FreshOnly ON | | | | | NEXT |
+| S1 | score>=2 | diperkirakan gagal dari B2 (score2-5 gabungan -0.30 < score1 -0.12), rerun penuh DITUNDA — butuh gate baru di ScanEntry + displacement 1-posisi/hari bikin aproksimasi tak presisi | | | | | DITUNDA |
+| F1 | 2024-01→2026-09, InpFreshOnly=true | FreshOnly ON (input baru, engine tak diubah) | | | | | RUNNING (copy mq5 baru, compile, run setting sama dgn B2 + FreshOnly=true) |
 
 ## 6. Kriteria lolos ke demo
 
