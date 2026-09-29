@@ -458,9 +458,8 @@ void LogTrade(ulong ticket, double exitPrice, ENUM_SR_EXIT_REASON reason,
    string srcs=ClusterSources(_Symbol,g_levels,
       (g_openClusterIdx>=0&&g_openClusterIdx<ArraySize(g_clusters)?
        g_clusters[g_openClusterIdx]:g_clusters[0]));
-   string line=StringFormat("%04d.%02d.%02d,"
-      "%04d.%02d.%02d %02d:%02d,%s,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,"
-      "%02d,%s,%s,%s,%s,%s,%s",
+   string line=StringFormat("%04d.%02d.%02d,%04d.%02d.%02d %02d:%02d,"
+      "%s,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%02d,%s,%s,%s,%s,%s,%s",
       ge.year,ge.mon,ge.day,
       gx.year,gx.mon,gx.day,gx.hour,gx.min,
       _Symbol,DirName(g_openDir>0?SR_DIRECTION_LONG:SR_DIRECTION_SHORT),
