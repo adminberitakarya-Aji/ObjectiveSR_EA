@@ -35,8 +35,8 @@ void ManageOpen();
 void CheckForceClose();
 void TrackMAEMFE();
 void LogSignal(int cIdx, SRTradeSetup &sig, string note);
-void LogTrade(ulong ticket, double exitPrice, ENUM_SR_EXIT_REASON reason,
-              double profit, double resultR);
+void LogTrade(ulong ticket, int closedDir, double exitPrice,
+              ENUM_SR_EXIT_REASON reason, double profit, double resultR);
 void OnPositionClosed(ulong ticket, double profit, double resultR);
 
 //--- Globals (kontrak utama EA, Phase 1)
@@ -389,7 +389,7 @@ void ManageOpen()
          if(exitPx<=0)
             exitPx=(cdir>0?SymbolInfoDouble(_Symbol,SYMBOL_BID)
                           :SymbolInfoDouble(_Symbol,SYMBOL_ASK));
-         LogTrade(closed,exitPx,er,prof,rr);
+         LogTrade(closed,cdir,exitPx,er,prof,rr);
          g_openEntry=0; g_openRiskPips=0; g_openSL=0; g_openTP=0;
          g_openMAE=0; g_openMFE=0;
          OnPositionClosed(closed,prof,rr);
@@ -445,8 +445,8 @@ void LogSignal(int cIdx, SRTradeSetup &sig, string note)
       DoubleToString(sig.SpreadPips,1),note);
    LoggerAppend(f,line);
   }
-void LogTrade(ulong ticket, double exitPrice, ENUM_SR_EXIT_REASON reason,
-              double profit, double resultR)
+void LogTrade(ulong ticket, int closedDir, double exitPrice,
+              ENUM_SR_EXIT_REASON reason, double profit, double resultR)
   {
    if(!InpLogCSV) return;
    string f=LoggerTradeFile(_Symbol);
@@ -462,7 +462,7 @@ void LogTrade(ulong ticket, double exitPrice, ENUM_SR_EXIT_REASON reason,
       "%s,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%02d,%s,%s,%s,%s,%s,%s",
       ge.year,ge.mon,ge.day,
       gx.year,gx.mon,gx.day,gx.hour,gx.min,
-      _Symbol,DirName(g_openDir>0?SR_DIRECTION_LONG:SR_DIRECTION_SHORT),
+      _Symbol,DirName(closedDir>0?SR_DIRECTION_LONG:SR_DIRECTION_SHORT),
       DoubleToString(g_openEntry,dg),DoubleToString(g_openSL,dg),
       DoubleToString(g_openTP,dg),srcs,
       g_openScore,g_openTouches,
