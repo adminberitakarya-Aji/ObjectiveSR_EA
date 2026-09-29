@@ -353,11 +353,17 @@ void ManageOpen()
          g_lastClosedTicket=closed;
          double prof=0; double exitPx=0;
          ENUM_SR_EXIT_REASON er=SR_EXIT_OTHER;
+         //--- FIX: HistorySelect(0,...) memilih SELURUH histori akun, jadi
+         //--- deal WAJIB difilter per posisi via DEAL_POSITION_ID==closed.
+         //--- Tanpa ini, prof menjumlahkan semua deal symbol+magic sepanjang
+         //--- histori akun (bug lama), bukan hanya posisi yang baru tertutup.
          if(HistorySelect(0,TimeCurrent()+86400))
            {
             for(int i=0;i<HistoryDealsTotal();i++)
               {
                ulong dt=HistoryDealGetTicket(i);
+               if(HistoryDealGetInteger(dt,DEAL_POSITION_ID)!=(long)closed)
+                  continue;
                string ds="";
                if(!HistoryDealGetString(dt,DEAL_SYMBOL,ds)) continue;
                long dm=HistoryDealGetInteger(dt,DEAL_MAGIC);
@@ -366,7 +372,9 @@ void ManageOpen()
                   prof+=HistoryDealGetDouble(dt,DEAL_PROFIT)
                        +HistoryDealGetDouble(dt,DEAL_SWAP)
                        +HistoryDealGetDouble(dt,DEAL_COMMISSION);
-                  exitPx=HistoryDealGetDouble(dt,DEAL_PRICE);
+                  //--- Hanya deal OUT yang merepresentasikan harga exit
+                  if(HistoryDealGetInteger(dt,DEAL_ENTRY)==DEAL_ENTRY_OUT)
+                     exitPx=HistoryDealGetDouble(dt,DEAL_PRICE);
                   long rw=HistoryDealGetInteger(dt,DEAL_REASON);
                   if(rw==DEAL_REASON_SL) er=SR_EXIT_SL;
                   else if(rw==DEAL_REASON_TP) er=SR_EXIT_TP;
@@ -486,7 +494,4 @@ void OnPositionClosed(ulong ticket, double profit, double resultR)
          " weekR=",DoubleToString(g_risk.WeeklyLossR,2),
          (g_risk.ReducedRiskMode?" REDUCED":""));
   }
-
-
-
-//+------------------------------------------------------------------+
+  
