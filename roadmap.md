@@ -11,7 +11,8 @@
 - [x] M2+M3 Market+Level = DONE (SRMarket.mqh + SRLevelEngine.mqh, SRLevel[] pertama)
 - [x] M4-M8 = DONE (cluster median, touch+state, trend EMA50, entry pin/engulf, SL/TP/RR+risk+exec, logger CSV)
 - [x] B1 baseline 2024 = DONE: N=50, win 22%, PF 0.50, cumR -18.62, maxDD -26R → TIDAK LOLOS (ekspektasi negatif, N<100). Detail: analysis/M9_validation.md. 12/24 checklist tercentang.
-- [ ] NEXT: tambah N (run 2023 + 2025-2026, target ≥200) → ablasi S1/F1 → OOS → demo
+- [x] B2 baseline 2024-2026 = DONE: N=166 (target N≥100 TERPENUHI), win 27%, PF 0.66, cumR -40.01, maxDD -48.7R → TIDAK LOLOS (PF<1, maxDD >> 10R). Semua pola negatif, hipotesis score tetap gagal (score1 terbaik -0.12). Data bersih: mismatch 0, gate 0 pelanggaran.
+- [ ] NEXT: ablasi S1 (score>=2) + F1 (FreshOnly ON) untuk konfirmasi → OOS → demo
 
 ## 1. Urutan Fase (wajib, Spec #77)
 
