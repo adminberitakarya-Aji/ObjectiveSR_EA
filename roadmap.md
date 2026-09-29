@@ -4,12 +4,14 @@
 **Prinsip:** OBJECTIVE > REPEATABLE > TESTABLE > MEASURABLE > RESEARCHABLE
 **Keras:** closed-bar `shift>=1`, no-repaint, `TimeGMT()`, pips, deterministik.
 
-## 0. Status (28 Sep 2026)
+## 0. Status (29 Sep 2026)
 
 - [x] Spec v1.0 + desain Phase 1 = DEFINED (masih .txt)
 - [x] M1 fondasi = DONE (ObjectiveSR.mq5 + 4x .mqh)
 - [x] M2+M3 Market+Level = DONE (SRMarket.mqh + SRLevelEngine.mqh, SRLevel[] pertama)
-- [ ] M4 Cluster = NEXT, Backtest = NOT STARTED
+- [x] M4-M8 = DONE (cluster median, touch+state, trend EMA50, entry pin/engulf, SL/TP/RR+risk+exec, logger CSV)
+- [x] B1 baseline 2024 = DONE: N=50, win 22%, PF 0.50, cumR -18.62, maxDD -26R → TIDAK LOLOS (ekspektasi negatif, N<100). Detail: analysis/M9_validation.md. 12/24 checklist tercentang.
+- [ ] NEXT: tambah N (run 2023 + 2025-2026, target ≥200) → ablasi S1/F1 → OOS → demo
 
 ## 1. Urutan Fase (wajib, Spec #77)
 

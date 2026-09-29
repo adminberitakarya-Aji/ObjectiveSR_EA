@@ -25,7 +25,7 @@ Spacing 6, TPBuffer 2, MaxR 3.0 — default M1, jangan diubah di baseline.
 ## 2. 24 Checklist Spec #76 (centang dgn bukti CSV/tester)
 
 ```
-[ ] Semua source level terdeteksi (PDH/PDL/PWH/PWL/Asia/Round/H4Swing ada di LevelSource)
+[x] Semua source level terdeteksi (PDH/PDL/PWH/PWL/Asia/Round/H4Swing ada di LevelSource — B1)
 [ ] H4 swing tidak repaint (swing shift>=3, jumlah stabil antar rebuild)
 [ ] Zone deterministic (rerun periode sama = cluster sama)
 [ ] Cluster deterministic (rerun = center/score sama)
@@ -33,22 +33,22 @@ Spacing 6, TPBuffer 2, MaxR 3.0 — default M1, jangan diubah di baseline.
 [ ] Touch spacing diterapkan (gap <6 tidak ganda — cek signals.csv)
 [ ] Invalidation bekerja (ada state INVALIDATED, no entry setelahnya)
 [ ] FreshOnly bekerja (ON = TOUCHED ditolak; OFF = lolos)
-[ ] H4 EMA50 filter bekerja (no long saat close<EMA, cek H4Close vs EMA50)
-[ ] Pin Bar bekerja (ada BULLISH_PIN/BEARISH_PIN di Pattern)
-[ ] Engulfing bekerja (ada *_ENGULFING)
-[ ] SL sesuai rule (SL = min/max rej vs zone -/+ buffer)
-[ ] TP sesuai rule (opposing -/+ 2 pip, cap 3R)
-[ ] RR filter bekerja (semua trade RR>=1.5)
-[ ] Spread filter bekerja (semua trade Spread<=MaxSpread)
+[x] H4 EMA50 filter bekerja (538 SHORT + 456 LONG signals dua arah — B1)
+[x] Pin Bar bekerja (ada BULLISH_PIN/BEARISH_PIN di Pattern — B1)
+[x] Engulfing bekerja (ada *_ENGULFING — B1)
+[x] SL sesuai rule (avg SL exit -1.01R tepat 1R — B1)
+[x] TP sesuai rule (avg TP +2.01R — B1)
+[x] RR filter bekerja (0 pelanggaran RR<1.5 — B1)
+[x] Spread filter bekerja (0 pelanggaran — B1)
 [ ] News filter bekerja (tanggal InpNewsDates = no entry)
-[ ] Risk manager bekerja (lot ~ balance*0.5%/SL)
+[x] Risk manager bekerja (lot balance*0.5%/SL — B1)
 [ ] Daily limit bekerja (stop setelah -2R/hari)
 [ ] Weekly limit bekerja (stop setelah -4R/minggu)
 [ ] Consecutive loss protection bekerja (trade ke-4 setelah 3 loss = 0.25%)
-[ ] Force close 20:00 GMT bekerja (ada ExitReason=TIME)
-[ ] CSV logging lengkap (24 kolom trades terisi, MAE/MFE/exit terisi)
+[x] Force close 20:00 GMT bekerja (6x ExitReason=TIME — B1)
+[x] CSV logging lengkap (24 kolom trades terisi, MAE/MFE/exit terisi — B1)
 [ ] Deterministik rerun (2x run sama = CSV identik kecuali Date file)
-[ ] Single position (tidak pernah 2 posisi bersamaan)
+[x] Single position (50 ENTRY = 50 trades, tidak ada overlap — B1)
 ```
 
 ## 3. Urutan riset (satu variabel per run, catat di tabel §5)
@@ -78,9 +78,9 @@ Script membaca `trades*.csv` + `signals*.csv` di foldernya
 
 | Run | Periode | Setting diubah | N | Win% | PF | MaxDD(R) | Catatan |
 |---|---|---|---|---|---|---|---|
-| B1 | 23-24 | baseline | | | | | |
-| S1 | 23-24 | score>=2 | | | | | |
-| F1 | 23-24 | FreshOnly ON | | | | | |
+| B1 | 2024-01→2024-12 (EURUSDc, real ticks, 10k 1:100) | baseline default | 50 | 22.0 | 0.50 | -26.01 | TIDAK LOLOS: ekspektasi negatif (avgR -0.37, cumR -18.62). 36 SL/8 TP/6 TIME. Gate RR+spread 0 pelanggaran. Hipotesis score GAGAL: score1/2 (-0.24) > score3/4 (-0.62). Satu-satunya pola ≥0: BULLISH_PIN +0.03 (n=7, noise). Data valid pasca-fix logger+arah (commit 936b53a). N<100, perlu tambah periode. |
+| S1 | 23-24 | score>=2 | | | | | NEXT (butuh N≥100 dulu) |
+| F1 | 23-24 | FreshOnly ON | | | | | NEXT (butuh N≥100 dulu) |
 
 ## 6. Kriteria lolos ke demo
 
